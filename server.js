@@ -1,35 +1,35 @@
-var server_port = process.env.PORT || 1337;
-var verbose = false;
-var http = require('http');
-var express = require('express'),
-  bodyparser = require('body-parser'),
-  app = module.exports.app = express();
-var server = http.createServer(app);
+var Server = IgeClass.extend({
+	classId: 'Server',
+	Server: true,
 
+	init: function (options) {
+		var self = this;
 
-app.use(bodyparser.json()); // to support JSON-encoded bodies
-app.use(bodyparser.urlencoded({ // to support URL-encoded bodies
-  extended: true
-}));
+		// Add the networking component
+		ige.addComponent(IgeNetIoComponent)
+			// Start the network server
+			.network.start(2000, function () {
+				// Networking has started so start the game engine
+				ige.start(function (success) {
+					// Check if the engine started successfully
+					if (success) {
+						ige.network.on('connect', function () {});
+						ige.network.on('disconnect', function () {});
 
-server.listen(server_port);
-console.log("Listening on port " + server_port);
+						// Add the network stream component
+						ige.network.addComponent(IgeStreamComponent)
+							.stream.sendInterval(30) // Send a stream update once every 30 milliseconds
+							.stream.start(); // Start the stream
 
-app.get('/', function(req, res){
-    res.sendFile(__dirname + '/index.html');
+						// Accept incoming network connections
+						ige.network.acceptConnections(true);
+
+						// Load the base scene data
+						ige.addGraph('IgeBaseScene');
+					}
+				});
+			});
+	}
 });
 
-app.get('/*', function(req, res, next) {
-
-  //This is the current file they have requested
-  var file = req.params[0];
-
-  //For debugging, we can track what files are requested.
-  if (verbose) console.log('\t :: Express :: file requested : ' + file);
-
-  //Send the requesting client the file.
-  res.sendFile(__dirname + '/' + file);
-
-});
-
-}
+if (typeof(module) !== 'undefined' && typeof(module.exports) !== 'undefined') { module.exports = Server; }
